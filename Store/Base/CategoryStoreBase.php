@@ -14,6 +14,7 @@ use b8\Database\Query\Criteria;
 use b8\Exception\StoreException;
 use Octo\Store;
 use Octo\Categories\Model\Category;
+use Octo\Categories\Model\CategoryCollection;
 
 /**
  * Category Base Store
@@ -49,6 +50,13 @@ trait CategoryStoreBase
         if (is_null($value)) {
             throw new StoreException('Value passed to ' . __FUNCTION__ . ' cannot be null.');
         }
+        // This is the primary key, so try and get from cache:
+        $cacheResult = $this->getFromCache($value);
+
+        if (!empty($cacheResult)) {
+            return $cacheResult;
+        }
+
 
         $query = new Query($this->getNamespace('Category').'\Model\Category', $useConnection);
         $query->select('*')->from('category')->limit(1);
@@ -57,7 +65,11 @@ trait CategoryStoreBase
 
         try {
             $query->execute();
-            return $query->fetch();
+            $result = $query->fetch();
+
+            $this->setCache($value, $result);
+
+            return $result;
         } catch (PDOException $ex) {
             throw new StoreException('Could not get Category by Id', 0, $ex);
         }
@@ -110,7 +122,7 @@ trait CategoryStoreBase
 
         try {
             $query->execute();
-            return $query->fetchAll();
+            return new CategoryCollection($query->fetchAll());
         } catch (PDOException $ex) {
             throw new StoreException('Could not get Category by Slug', 0, $ex);
         }
@@ -164,7 +176,7 @@ trait CategoryStoreBase
 
         try {
             $query->execute();
-            return $query->fetchAll();
+            return new CategoryCollection($query->fetchAll());
         } catch (PDOException $ex) {
             throw new StoreException('Could not get Category by Scope', 0, $ex);
         }
@@ -218,7 +230,7 @@ trait CategoryStoreBase
 
         try {
             $query->execute();
-            return $query->fetchAll();
+            return new CategoryCollection($query->fetchAll());
         } catch (PDOException $ex) {
             throw new StoreException('Could not get Category by ParentId', 0, $ex);
         }
@@ -272,7 +284,7 @@ trait CategoryStoreBase
 
         try {
             $query->execute();
-            return $query->fetchAll();
+            return new CategoryCollection($query->fetchAll());
         } catch (PDOException $ex) {
             throw new StoreException('Could not get Category by ImageId', 0, $ex);
         }
